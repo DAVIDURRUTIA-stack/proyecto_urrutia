@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedRed — Red LAN estructurada para telemedicina</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%230F5C56'/%3E%3Cpath d='M24 10v10M24 28v10M10 24h10M28 24h10' stroke='%23EEF3F1' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='24' cy='24' r='6' fill='%23D9662E'/%3E%3Ccircle cx='10' cy='24' r='2.6' fill='%23EEF3F1'/%3E%3Ccircle cx='38' cy='24' r='2.6' fill='%23EEF3F1'/%3E%3Ccircle cx='24' cy='10' r='2.6' fill='%23EEF3F1'/%3E%3Ccircle cx='24' cy='38' r='2.6' fill='%23EEF3F1'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#122A28;
+    --paper:#EEF3F1;
+    --paper-soft:#F6F9F7;
+    --teal:#0F5C56;
+    --teal-deep:#0B3E3A;
+    --cable:#2C6E88;
+    --copper:#D9662E;
+    --copper-soft:#F1C9AC;
+    --line:#C7D3CE;
+    --mono: 'IBM Plex Mono', monospace;
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'Source Serif 4', serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:17px;
+    line-height:1.65;
+  }
+  h1,h2,h3,h4{
+    font-family:var(--display);
+    color:var(--teal-deep);
+    margin:0 0 .5em 0;
+    letter-spacing:-0.01em;
+  }
+  a{color:var(--cable);}
+  .wrap{
+    max-width:1120px;
+    margin:0 auto;
+    padding:0 32px;
+  }
+  .prose{max-width:680px;}
+
+  /* ---------- top bar ---------- */
+  header.topbar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(238,243,241,.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:1120px; margin:0 auto; padding:14px 32px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:24px;
+  }
+  .brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink);}
+  .brand svg{width:34px; height:34px; display:block;}
+  .brand-name{font-family:var(--display); font-weight:700; font-size:19px; color:var(--teal-deep);}
+  .brand-sub{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.06em; color:var(--cable); margin-top:-2px;}
+  nav.topnav{display:flex; gap:22px; flex-wrap:wrap;}
+  nav.topnav a{
+    font-family:var(--display); font-size:13.5px; font-weight:500;
+    color:var(--teal-deep); text-decoration:none; opacity:.8;
+    border-bottom:2px solid transparent; padding-bottom:2px;
+  }
+  nav.topnav a:hover{opacity:1; border-bottom-color:var(--copper);}
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:64px 0 56px;
+    border-bottom:1px solid var(--line);
+    overflow:hidden;
+  }
+  .hero-grid{
+    display:grid; grid-template-columns:1.15fr .85fr; gap:48px; align-items:center;
+  }
+  .kicker{
+    font-family:var(--mono); font-size:12px; color:var(--cable);
+    display:flex; gap:10px; align-items:center; margin-bottom:18px;
+  }
+  .kicker .dot{width:7px; height:7px; border-radius:50%; background:var(--copper);}
+  .hero h1{
+    font-size:clamp(30px, 4vw, 44px); line-height:1.12; font-weight:600;
+    max-width:15ch;
+  }
+  .hero-lede{
+    font-size:18px; color:#334E4A; max-width:46ch; margin-top:18px;
+  }
+  .chips{display:flex; flex-wrap:wrap; gap:10px; margin-top:26px;}
+  .chip{
+    font-family:var(--mono); font-size:12px; color:var(--teal-deep);
+    background:var(--paper-soft); border:1px solid var(--line);
+    padding:6px 12px; border-radius:3px;
+  }
+  .hero-fig{display:flex; justify-content:center;}
+  .hero-fig svg{width:100%; max-width:360px;}
+
+  .credit-line{
+    margin-top:36px; font-family:var(--mono); font-size:12px; color:#5B7570;
+    border-top:1px dashed var(--line); padding-top:14px;
+  }
+
+  /* ---------- sections ---------- */
+  section{padding:60px 0;}
+  section.alt{background:var(--paper-soft); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; color:var(--copper);
+    margin-bottom:10px;
+  }
+  .section-head{margin-bottom:34px; max-width:680px;}
+  .section-head h2{font-size:28px; font-weight:600;}
+
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:40px;}
+  .stat-pull{
+    border-left:3px solid var(--copper);
+    padding:4px 0 4px 20px; margin:28px 0;
+    font-family:var(--display); font-size:20px; color:var(--teal-deep);
+  }
+  .stat-pull span{display:block; font-family:var(--mono); font-size:12px; color:#5B7570; margin-top:6px;}
+
+  ul.spec{margin:0; padding:0; list-style:none;}
+  ul.spec li{
+    padding:12px 0; border-bottom:1px solid var(--line);
+    display:flex; gap:14px;
+  }
+  ul.spec li:first-child{padding-top:0;}
+  ul.spec li .num{font-family:var(--mono); font-size:12px; color:var(--copper); padding-top:3px;}
+
+  table{width:100%; border-collapse:collapse; margin:8px 0 4px; font-size:15px;}
+  caption{text-align:left; font-family:var(--mono); font-size:12px; color:#5B7570; margin-bottom:8px; caption-side:top;}
+  th,td{padding:10px 12px; border:1px solid var(--line); text-align:left; vertical-align:top;}
+  th{background:var(--teal-deep); color:var(--paper-soft); font-family:var(--display); font-size:13px; font-weight:500;}
+  tr:nth-child(even) td{background:var(--paper-soft);}
+  .table-scroll{overflow-x:auto; margin-bottom:28px;}
+
+  .badge{
+    display:inline-block; font-family:var(--mono); font-size:11px;
+    padding:3px 8px; border-radius:3px; border:1px solid currentColor;
+  }
+  .badge.high{color:#B7402E;}
+  .badge.med{color:var(--cable);}
+  .badge.rec{color:var(--teal);}
+
+  .conclusion-list{margin:0; padding:0; counter-reset:c;}
+  .conclusion-list li{
+    counter-increment:c; list-style:none; position:relative;
+    padding:18px 0 18px 52px; border-bottom:1px solid var(--line);
+  }
+  .conclusion-list li::before{
+    content:counter(c);
+    position:absolute; left:0; top:16px;
+    font-family:var(--display); font-size:22px; font-weight:700; color:var(--copper-soft);
+    -webkit-text-stroke:1px var(--copper);
+  }
+
+  /* ---------- Historia de Usuario (ticket look) ---------- */
+  .hu-card{
+    background:var(--paper-soft);
+    border:1px solid var(--teal-deep);
+    border-radius:6px;
+    padding:0;
+    overflow:hidden;
+  }
+  .hu-strip{
+    background:var(--teal-deep); color:var(--paper-soft);
+    padding:14px 22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
+  }
+  .hu-strip .id{font-family:var(--mono); font-size:13px; letter-spacing:.04em;}
+  .hu-strip .status{font-family:var(--mono); font-size:12px; background:var(--copper); color:#fff; padding:4px 10px; border-radius:3px;}
+  .hu-meta{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+    background:var(--line);
+  }
+  .hu-meta div{background:var(--paper-soft); padding:14px 16px;}
+  .hu-meta .k{font-family:var(--mono); font-size:11px; color:var(--cable); display:block; margin-bottom:4px;}
+  .hu-meta .v{font-family:var(--display); font-size:14.5px; color:var(--teal-deep);}
+  .hu-body{padding:28px 30px;}
+  .hu-block{margin-bottom:34px;}
+  .hu-block:last-child{margin-bottom:0;}
+  .hu-block h3{
+    font-size:16px; font-family:var(--mono); text-transform:none;
+    color:var(--copper); margin-bottom:14px; padding-bottom:8px; border-bottom:1px dashed var(--line);
+  }
+  .story-line{
+    font-family:var(--display); font-size:19px; color:var(--teal-deep);
+    background:#fff; border:1px solid var(--line); border-radius:4px;
+    padding:18px 20px; line-height:1.5;
+  }
+  .story-line b{color:var(--copper);}
+  .dod-list{list-style:none; margin:0; padding:0; columns:2; gap:20px;}
+  .dod-list li{margin-bottom:10px; font-size:15px;}
+  .dod-list li::before{content:"☑ "; color:var(--teal); font-family:var(--mono);}
+  .fill-note{
+    font-family:var(--mono); font-size:11.5px; color:var(--cable);
+    background:#fff; border:1px solid var(--line); border-left:3px solid var(--cable);
+    padding:10px 14px; margin-top:10px;
+  }
+  .valid-table td.sig{font-family:var(--mono); color:#8a988f;}
+
+  /* ---------- references / footer ---------- */
+  .refs{font-size:14.5px; color:#33443F;}
+  .refs li{margin-bottom:14px; padding-left:0;}
+  footer{
+    padding:40px 0 50px; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:12px; color:#5B7570;
+  }
+  footer .foot-grid{display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px;}
+
+  @media (max-width:860px){
+    .hero-grid{grid-template-columns:1fr;}
+    .hero-fig{order:-1;}
+    .two-col{grid-template-columns:1fr;}
+    .hu-meta{grid-template-columns:repeat(2,1fr);}
+    nav.topnav{display:none;}
+    .dod-list{columns:1;}
+  }
+
+  /* ---------- animaciones de botones (añadido, no toca el resto) ---------- */
+  nav.topnav a{
+    position:relative;
+    transition:opacity .25s ease, transform .25s ease, color .25s ease;
+  }
+  nav.topnav a::after{
+    content:"";
+    position:absolute; left:0; bottom:-3px;
+    width:0; height:2px; background:var(--copper);
+    transition:width .3s ease;
+  }
+  nav.topnav a:hover{
+    transform:translateY(-2px);
+    color:var(--copper);
+  }
+  nav.topnav a:hover::after{width:100%;}
+
+  .chip{
+    transition:transform .25s ease, background .25s ease, box-shadow .25s ease, border-color .25s ease;
+  }
+  .chip:hover{
+    transform:translateY(-3px) scale(1.04);
+    background:var(--teal-deep);
+    color:#fff;
+    border-color:var(--teal-deep);
+    box-shadow:0 8px 18px -8px rgba(11,62,58,.45);
+    cursor:pointer;
+  }
+
+  .badge{
+    transition:transform .25s ease, background .25s ease, color .25s ease, box-shadow .25s ease;
+  }
+  .badge:hover{
+    transform:scale(1.08);
+    color:#fff;
+    box-shadow:0 4px 12px -4px rgba(0,0,0,.25);
+  }
+  .badge.high:hover{background:#B7402E;}
+  .badge.med:hover{background:var(--cable);}
+  .badge.rec:hover{background:var(--teal);}
+
+  .brand{
+    transition:transform .3s ease;
+  }
+  .brand:hover svg{
+    animation:pulse-logo .7s ease;
+  }
+  .brand:hover .brand-name{color:var(--copper);}
+
+  @keyframes pulse-logo{
+    0%{transform:scale(1) rotate(0deg);}
+    45%{transform:scale(1.12) rotate(-4deg);}
+    100%{transform:scale(1) rotate(0deg);}
+  }
+
+  a.brand, nav.topnav a{will-change:transform;}
+  @media (prefers-reduced-motion: reduce){
+    nav.topnav a, .chip, .badge, .brand svg{transition:none; animation:none;}
+  }
+
+  /* ---------- fondo neón (añadido, no toca el resto) ---------- */
+  body{
+    background: linear-gradient(-45deg, #FF2BD1, #7B2FFF, #00E5FF, #B6FF3B);
+    background-size: 400% 400%;
+    animation: neonShift 16s ease infinite;
+  }
+  @keyframes neonShift{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+  }
+  header.topbar{
+    background:rgba(238,243,241,.72);
+    backdrop-filter:blur(12px);
+  }
+  .hero, section, footer{
+    background:rgba(241,246,244,.88);
+  }
+  section.alt{
+    background:rgba(246,249,247,.9);
+  }
+  .hu-card, table, .chip, .stat-pull, .story-line, .fill-note{
+    backdrop-filter:blur(2px);
+  }
+  @media (prefers-reduced-motion: reduce){
+    body{animation:none; background-position:0% 50%;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="22" fill="#0F5C56"/>
+        <path d="M24 10v10M24 28v10M10 24h10M28 24h10" stroke="#EEF3F1" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="24" cy="24" r="6" fill="#D9662E"/>
+        <circle cx="10" cy="24" r="2.6" fill="#EEF3F1"/>
+        <circle cx="38" cy="24" r="2.6" fill="#EEF3F1"/>
+        <circle cx="24" cy="10" r="2.6" fill="#EEF3F1"/>
+        <circle cx="24" cy="38" r="2.6" fill="#EEF3F1"/>
+      </svg>
+      <span>
+        <span class="brand-name">MedRed</span>
+        <span class="brand-sub">RED LAN · SALUD · TEINCO</span>
+      </span>
+    </a>
+    <nav class="topnav">
+      <a href="#resumen">Resumen</a>
+      <a href="#objetivos">Objetivos</a>
+      <a href="#metodologia">Metodología</a>
+      <a href="#red">Red LAN</a>
+      <a href="#resultados">Resultados</a>
+      <a href="#historia-usuario">Historia de usuario</a>
+      <a href="#referencias">Referencias</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="kicker"><span class="dot"></span> PROYECTO DE INVESTIGACIÓN · TEINCO 2026</div>
+        <h1>Una red LAN bien cableada, para que la telemedicina no falle</h1>
+        <p class="hero-lede">Este proyecto analiza cómo una red LAN con cableado estructurado, bajo los estándares EIA/TIA&nbsp;568B e ISO/IEC&nbsp;11801, sostiene una aplicación de telemedicina para agendar citas médicas en Bogotá — donde hoy un paciente espera hasta 45 días por una cita y hasta dos horas para llegar a ella.</p>
+        <div class="chips">
+          <span class="chip">Autor: David Urrutia</span>
+          <span class="chip">Técnico en Programación de SI</span>
+          <span class="chip">Institución Teinco · Bogotá</span>
+        </div>
+        <div class="credit-line">
+          Análisis conceptual de una red LAN con cableado estructurado para empresas de salud: revisión de estándares y buenas prácticas.
+        </div>
+      </div>
+      <div class="hero-fig">
+        <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+          <rect x="40" y="30" width="240" height="60" rx="4" fill="#0B3E3A"/>
+          <g fill="#EEF3F1">
+            <rect x="55" y="45" width="14" height="30" rx="2"/>
+            <rect x="79" y="45" width="14" height="30" rx="2"/>
+            <rect x="103" y="45" width="14" height="30" rx="2"/>
+            <rect x="127" y="45" width="14" height="30" rx="2"/>
+            <rect x="151" y="45" width="14" height="30" rx="2"/>
+            <rect x="175" y="45" width="14" height="30" rx="2"/>
+            <rect x="199" y="45" width="14" height="30" rx="2"/>
+            <rect x="223" y="45" width="14" height="30" rx="2"/>
+            <rect x="247" y="45" width="14" height="30" rx="2"/>
+          </g>
+          <path d="M62 90 C62 140, 120 140, 120 190" stroke="#2C6E88" stroke-width="3" fill="none"/>
+          <path d="M110 90 C110 150, 200 150, 200 200" stroke="#2C6E88" stroke-width="3" fill="none"/>
+          <path d="M254 90 C254 160, 230 160, 230 205" stroke="#2C6E88" stroke-width="3" fill="none"/>
+          <circle cx="160" cy="235" r="46" fill="#F6F9F7" stroke="#0F5C56" stroke-width="3"/>
+          <path d="M160 213v44M138 235h44" stroke="#D9662E" stroke-width="8" stroke-linecap="round"/>
+          <circle cx="120" cy="192" r="4" fill="#D9662E"/>
+          <circle cx="200" cy="202" r="4" fill="#D9662E"/>
+          <circle cx="230" cy="207" r="4" fill="#D9662E"/>
+          <text x="160" y="300" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#5B7570">CABLEADO ESTRUCTURADO → ATENCIÓN MÉDICA</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESUMEN -->
+  <section id="resumen">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">De qué trata</div>
+        <h2>El problema no es solo agendar una cita</h2>
+      </div>
+      <div class="two-col">
+        <div class="prose">
+          <p>La pandemia obligó a digitalizar la atención médica, y la telemedicina se volvió una alternativa real para no exponer a los pacientes al contagio. Pero en Bogotá, agendar una consulta sigue siendo lento: entre 7 y 45 días en el sector privado, hasta 4 meses en hospitales públicos, y hasta dos horas de traslado por consulta presencial.</p>
+          <p>Este proyecto plantea que una solución de telemedicina —web y móvil— para gestionar citas médicas solo funciona si está soportada por una infraestructura de red confiable. Por eso se analiza conceptualmente una red LAN con cableado estructurado, siguiendo los estándares EIA/TIA&nbsp;568B e ISO/IEC&nbsp;11801, como base técnica de ese software.</p>
+        </div>
+        <div>
+          <div class="stat-pull">7–45 días<span>tiempo de espera para una cita con especialista en el sector privado</span></div>
+          <div class="stat-pull">hasta 4 meses<span>tiempo de espera en hospitales públicos del sistema de salud</span></div>
+          <div class="stat-pull">+60%<span>de la fuerza laboral bogotana en informalidad, sin cobertura completa en EPS</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OBJETIVOS -->
+  <section class="alt" id="objetivos">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Pregunta y objetivos</div>
+        <h2>Qué se propuso investigar</h2>
+      </div>
+      <div class="two-col">
+        <div class="prose">
+          <p><b>Pregunta problema:</b> ¿de qué manera el análisis conceptual de una red LAN con cableado estructurado, basada en estándares y buenas prácticas, contribuye al diseño de una infraestructura de comunicación eficiente, segura y escalable en empresas del sector salud en Bogotá?</p>
+          <p><b>Objetivo general:</b> analizar conceptualmente un software de telemedicina para la gestión de citas médicas a través de canales virtuales (web y app móvil), investigando y documentando requisitos, para mejorar la accesibilidad, trazabilidad y eficiencia en la atención médica en Bogotá.</p>
+        </div>
+        <ul class="spec">
+          <li><span class="num">01</span><span>Investigar las necesidades de pacientes y médicos en Bogotá mediante encuestas y entrevistas, para definir los requisitos funcionales del software.</span></li>
+          <li><span class="num">02</span><span>Diseñar e implementar los módulos de programación de citas, consultas y seguimiento de historial clínico, con Python, SQL y frameworks móviles.</span></li>
+          <li><span class="num">03</span><span>Evaluar usabilidad y rendimiento con un grupo piloto en instituciones bogotanas, midiendo tiempo de espera y tasa de cancelaciones.</span></li>
+          <li><span class="num">04</span><span>Documentar el proceso de desarrollo —diagramas de base de datos y manuales de usuario— para facilitar su escalabilidad y adopción.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- METODOLOGÍA -->
+  <section id="metodologia">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Método</div>
+        <h2>Enfoque mixto, no experimental</h2>
+      </div>
+      <p class="prose">Se combinaron datos cuantitativos (encuestas de tiempos de espera y satisfacción) con datos cualitativos (entrevistas al personal médico y administrativo), sobre una muestra por conveniencia de 10 profesionales de salud y 30 pacientes activos. El diseño fue no experimental y transversal: se observaron los procesos reales del centro de salud, sin manipular variables, para proponer después la solución tecnológica.</p>
+
+      <div class="table-scroll">
+      <table>
+        <caption>Ficha metodológica del proyecto</caption>
+        <thead><tr><th>Componente</th><th>Definición aplicada</th></tr></thead>
+        <tbody>
+          <tr><td>Enfoque</td><td>Mixto: encuestas (cuantitativo) + entrevistas (cualitativo).</td></tr>
+          <tr><td>Nivel</td><td>Exploratorio–descriptivo: identifica problemas de gestión y caracteriza los procesos actuales.</td></tr>
+          <tr><td>Método y diseño</td><td>No experimental: observación del centro de salud en su contexto real.</td></tr>
+          <tr><td>Técnicas</td><td>Encuestas digitales (escala Likert), entrevistas semiestructuradas, observación directa del agendamiento.</td></tr>
+          <tr><td>Instrumentos</td><td>Cuestionario en Google Forms, guía de entrevista abierta, lista de cotejo de observación.</td></tr>
+          <tr><td>Validación</td><td>Piloto con 2 médicos y 5 pacientes; revisión por un experto en metodología y un profesional de salud.</td></tr>
+          <tr><td>Aplicación práctica</td><td>App móvil Android para registro de pacientes, agendamiento, historial y notificaciones; piloto de 15 días.</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- RED LAN -->
+  <section class="alt" id="red">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Infraestructura</div>
+        <h2>La red que sostiene el software</h2>
+        <p class="prose" style="margin-top:14px;">Antes de construir la app, el proyecto revisa qué necesita la red LAN para que la información médica viaje segura y sin interrupciones: topología, cableado y componentes.</p>
+      </div>
+
+      <div class="table-scroll">
+      <table>
+        <caption>Topologías evaluadas para un entorno de salud</caption>
+        <thead><tr><th>Topología</th><th>Ventaja</th><th>Desventaja</th><th>Aplicabilidad</th></tr></thead>
+        <tbody>
+          <tr><td>Bus</td><td>Simple y económica</td><td>Una falla afecta toda la red</td><td><span class="badge high">No recomendada</span></td></tr>
+          <tr><td>Estrella</td><td>Fácil instalación, fallas aisladas</td><td>Depende del switch central</td><td><span class="badge rec">Altamente recomendada</span></td></tr>
+          <tr><td>Anillo</td><td>Tráfico predecible</td><td>Una falla afecta toda la red</td><td><span class="badge high">No recomendada</span></td></tr>
+          <tr><td>Árbol</td><td>Escalable y organizada</td><td>Complejidad de configuración</td><td><span class="badge med">Recomendada (redes grandes)</span></td></tr>
+          <tr><td>Malla</td><td>Alta redundancia</td><td>Costosa y compleja</td><td><span class="badge med">Entornos críticos</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="table-scroll">
+      <table>
+        <caption>Cableado estructurado según EIA/TIA 568B</caption>
+        <thead><tr><th>Componente</th><th>Especificación</th></tr></thead>
+        <tbody>
+          <tr><td>Cableado horizontal</td><td>Hasta 90 m de cable sólido + 10 m de patch cord</td></tr>
+          <tr><td>Cable UTP</td><td>Categoría 6, 4 pares trenzados, 22–24 AWG</td></tr>
+          <tr><td>Conectores RJ45</td><td>Alambrado estándar T568B</td></tr>
+          <tr><td>Canaletas</td><td>Protección y organización física del cableado</td></tr>
+          <tr><td>Certificación</td><td>Pruebas TSB-67 / TSB-95: atenuación, diafonía, pérdida de retorno</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="table-scroll">
+      <table>
+        <caption>Seguridad documentada para la red</caption>
+        <thead><tr><th>Medida</th><th>Descripción</th><th>Prioridad</th></tr></thead>
+        <tbody>
+          <tr><td>Control de acceso</td><td>Contraseñas robustas (min. 8 caracteres, mayúsculas, minúsculas, números, símbolos)</td><td><span class="badge high">Alta</span></td></tr>
+          <tr><td>Segmentación VLAN</td><td>Aislamiento de tráfico por departamento o tipo de dispositivo</td><td><span class="badge med">Media</span></td></tr>
+          <tr><td>Filtrado MAC</td><td>Listas de control de acceso por dirección MAC</td><td><span class="badge med">Media</span></td></tr>
+          <tr><td>Antimalware</td><td>Restricción de dispositivos externos (USB)</td><td><span class="badge high">Alta</span></td></tr>
+          <tr><td>Actualizaciones</td><td>Parches de SO, firmware y antivirus</td><td><span class="badge high">Alta</span></td></tr>
+          <tr><td>Backups</td><td>Respaldo periódico de información crítica</td><td><span class="badge high">Alta</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTADOS -->
+  <section id="resultados">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Hallazgos</div>
+        <h2>Lo que reveló el diagnóstico</h2>
+      </div>
+      <div class="two-col">
+        <div class="prose">
+          <p>La gestión manual de citas —llamadas, mensajes informales, papel— genera errores de registro, duplicidad de agendas y demoras. Sin un mecanismo de confirmación y recordatorio automático, los pacientes olvidan sus citas o no logran cancelarlas a tiempo, lo que deja huecos en la agenda médica.</p>
+          <p>De ahí surgen los requerimientos funcionales centrales: autenticación por rol (paciente, médico, administrativo), disponibilidad de horarios en tiempo real, reserva/cancelación/reprogramación con validaciones, notificaciones automáticas y consulta de historial de citas.</p>
+        </div>
+        <div class="prose">
+          <p>El análisis concluye que el problema de fondo no es la asignación puntual de una cita, sino la ausencia de un proceso integral de gestión. Una solución bien soportada en red aporta en tres frentes: mejora la organización interna, reduce el incumplimiento de citas y facilita el acceso del paciente al servicio — y debe diseñarse de forma escalable para incorporar a futuro historial clínico o pagos en línea.</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top:44px; font-size:20px;">Conclusiones</h3>
+      <ol class="conclusion-list">
+        <li>Existe una necesidad real de mejorar el acceso a citas médicas por canales virtuales, dadas las limitaciones de tiempo, traslado y disponibilidad presencial.</li>
+        <li>La metodología aplicada confirma que una solución web y móvil puede adaptarse al contexto estudiado y mejorar la organización del servicio.</li>
+        <li>Un sistema de telemedicina bien diseñado —y bien cableado— puede mejorar de forma significativa la accesibilidad, trazabilidad y eficiencia de la atención médica.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- HISTORIA DE USUARIO -->
+  <section class="alt" id="historia-usuario">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Taller · Plantilla Scrum</div>
+        <h2>Historia de usuario — completada</h2>
+        <p class="prose" style="margin-top:14px;">Se completaron los campos que estaban en blanco en la plantilla, y se reemplazó la pregunta sobre neumáticos de motocicleta en "Reglas de negocio" —que no correspondía a este proyecto— por reglas propias de la app de citas médicas.</p>
+      </div>
+
+      <div class="hu-card">
+        <div class="hu-strip">
+          <span class="id">HU-001 · Sprint 01 · v.001</span>
+          <span class="status">En progreso</span>
+        </div>
+        <div class="hu-meta">
+          <div><span class="k">Prioridad</span><span class="v">Alta</span></div>
+          <div><span class="k">Épica</span><span class="v">Gestión de citas médicas</span></div>
+          <div><span class="k">Rol / actor</span><span class="v">DAM</span></div>
+          <div><span class="k">Estimación</span><span class="v">16 semanas (Story Points)</span></div>
+          <div><span class="k">Responsables</span><span class="v">Julian Vanegas, Gerson Fique, Johan Lopez</span></div>
+          <div><span class="k">Fecha</span><span class="v">22/08/2026</span></div>
+        </div>
+
+        <div class="hu-body">
+
+          <div class="hu-block">
+            <h3>1 · Historia de usuario</h3>
+            <div class="story-line">Como <b>paciente</b>, quiero <b>agendar, consultar y cancelar mis citas médicas desde una aplicación móvil</b>, para <b>acceder a la atención médica de forma más rápida y segura, sin depender de llamadas telefónicas ni desplazamientos innecesarios</b>.</div>
+            <p style="margin-top:14px; color:#33443F;">Descripción / contexto: construir la aplicación móvil con Android Studio y base de datos SQLite; generar el logo de la identidad visual del producto.</p>
+          </div>
+
+          <div class="hu-block">
+            <h3>2 · Criterios de aceptación</h3>
+            <div class="table-scroll">
+            <table>
+              <thead><tr><th>#</th><th>Criterio de aceptación</th><th>Resultado esperado</th><th>Validado</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>Android Studio</td><td>El proyecto compila y ejecuta en emulador o dispositivo físico sin errores.</td><td>☐ Sí ☒ No</td></tr>
+                <tr><td>2</td><td>Kotlin</td><td>Las pantallas de login, agenda e historial navegan correctamente entre sí.</td><td>☐ Sí ☒ No</td></tr>
+                <tr><td>3</td><td>SQLite</td><td>Los datos de pacientes, médicos y citas se guardan y consultan entre sesiones.</td><td>☐ Sí ☒ No</td></tr>
+                <tr><td>4</td><td>Autenticación por rol</td><td>Paciente, médico y administrativo solo ven las funciones de su rol.</td><td>☐ Sí ☒ No</td></tr>
+                <tr><td>5</td><td>Logo y notificaciones</td><td>El logo aparece en la pantalla de inicio y llega la notificación de recordatorio antes de la cita.</td><td>☐ Sí ☒ No</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+
+          <div class="hu-block">
+            <h3>3 · Reglas de negocio / restricciones</h3>
+            <ul class="spec">
+              <li><span class="num">→</span><span>Un paciente no puede tener dos citas activas en el mismo horario.</span></li>
+              <li><span class="num">→</span><span>Solo el personal administrativo puede reasignar una cita cancelada a otro paciente.</span></li>
+              <li><span class="num">→</span><span>Las notificaciones de recordatorio se envían 24 horas antes de la cita.</span></li>
+              <li><span class="num">→</span><span>Toda cancelación debe hacerse con mínimo 2 horas de anticipación.</span></li>
+              <li><span class="num">→</span><span>Las contraseñas deben tener mínimo 8 caracteres, con mayúsculas, minúsculas y caracteres especiales.</span></li>
+            </ul>
+            <div class="fill-note">Nota: la plantilla original traía aquí una pregunta sobre neumáticos de motocicleta, ajena a este proyecto; se reemplazó por las reglas de negocio de la app de citas médicas.</div>
+          </div>
+
+          <div class="hu-block">
+            <h3>4 · Tareas técnicas</h3>
+            <div class="table-scroll">
+            <table>
+              <thead><tr><th>#</th><th>Tarea</th><th>Responsable</th><th>Estado</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>Instalación y configuración del IDE Android Studio</td><td>Johan Lopez</td><td>Hecho</td></tr>
+                <tr><td>2</td><td>Generar logo interactivo de identidad visual</td><td>Gerson Fique</td><td>En progreso</td></tr>
+                <tr><td>3</td><td>Diseño de la base de datos SQLite (pacientes, médicos, citas)</td><td>Julian Vanegas</td><td>Por hacer</td></tr>
+                <tr><td>4</td><td>Módulo de autenticación y roles</td><td>Johan Lopez</td><td>Por hacer</td></tr>
+                <tr><td>5</td><td>Módulo de agendamiento y notificaciones</td><td>Gerson Fique</td><td>Por hacer</td></tr>
+                <tr><td>6</td><td>Prueba piloto con médicos y pacientes</td><td>Julian Vanegas</td><td>Por hacer</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+
+          <div class="hu-block">
+            <h3>5 · Definition of Done</h3>
+            <ul class="dod-list">
+              <li>La funcionalidad cumple los criterios de aceptación.</li>
+              <li>El código fue revisado y probado.</li>
+              <li>No existen errores críticos pendientes.</li>
+              <li>La documentación asociada fue actualizada.</li>
+              <li>La funcionalidad fue validada por el Product Owner / responsable.</li>
+            </ul>
+          </div>
+
+          <div class="hu-block">
+            <h3>6 · Dependencias y riesgos</h3>
+            <p><b>Dependencias:</b> disponibilidad de Android Studio y de un dispositivo o emulador para pruebas; conexión a internet estable para sincronizar notificaciones; validación de requisitos por parte del personal médico del centro de salud.</p>
+            <p><b>Riesgos:</b> curva de aprendizaje de Kotlin y SQLite que puede retrasar el sprint; baja adopción por pacientes con poca familiaridad tecnológica; exposición de datos sensibles si no se aplican las medidas de control de acceso definidas para la red.</p>
+          </div>
+
+          <div class="hu-block">
+            <h3>7 · Resultado del sprint</h3>
+            <p><b>Resultado obtenido:</b> pendiente — se define al cierre del Sprint 01, una vez completadas las tareas técnicas de la sección 4.</p>
+            <p><b>Observaciones:</b> pendiente de registrar en la revisión de sprint con el Product Owner.</p>
+          </div>
+
+          <div class="hu-block">
+            <h3>8 · Validación</h3>
+            <div class="table-scroll">
+            <table class="valid-table">
+              <thead><tr><th>Rol</th><th>Nombre</th><th>Fecha</th><th>Firma</th></tr></thead>
+              <tbody>
+                <tr><td>Product Owner</td><td>Andres Diaz</td><td>03/09/2026</td><td class="sig">— pendiente —</td></tr>
+                <tr><td>Scrum Master / Docente</td><td>Andres Diaz</td><td>03/09/2026</td><td class="sig">— pendiente —</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REFERENCIAS -->
+  <section id="referencias">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Fuentes</div>
+        <h2>Referencias bibliográficas</h2>
+      </div>
+      <ol class="refs">
+        <li>Castro Huamán, L. M., Canchari Gutiérrez, R., & Sotomayor Laura, P. E. (2025). <i>Propuesta metodológica para la implementación de Sistemas de Información Hospitalaria (HIS) en proyectos de infraestructura sanitaria en el Perú</i> [Tesis de maestría, PUCP]. Repositorio Institucional PUCP.</li>
+        <li>Gómez Jais, I. A. (s. f.). <i>Aplicación móvil de gestión de procesos para el registro de pacientes y citas médicas en el centro de salud</i> [Tesis].</li>
+        <li>Guevara Vila, L. C., Cerrón Siuce, M. A., & Peña Marín, J. J. (2026). Impacto y eficacia de la tecnología médica en fisioterapia y laboratorio clínico. <i>Revista Información Científica, 105</i>, e5163.</li>
+        <li>Ministerio de Salud y Protección Social. (2023). <i>Telemedicina en Colombia: guía de implementación para el sistema de salud.</i></li>
+        <li>Padilla Bautista, C. A., Avellaneda Inga, J. E., & Medina Bayetto, R. F. (2024). <i>Implementación de software para citas médicas a través de canales virtuales</i> [Tesis de maestría, UPC].</li>
+        <li>Secretaría de Salud de Bogotá. (2024). <i>Informe anual de acceso a servicios de salud y telemedicina en Bogotá D.C.</i></li>
+        <li>Taco Loachamín, C. A., & Farinango Mancheno, J. D. (s. f.). <i>Análisis, diseño, construcción e implementación de un sistema de reservación de citas médicas basado en dispositivos Android para el Centro Odontológico Biodont</i> [Tesis].</li>
+      </ol>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <span>© 2026 MedRed · Proyecto académico — Institución de Educación Superior Teinco</span>
+    <span>David Urrutia · Técnico en Programación de Sistemas de Información · Bogotá, Colombia</span>
+  </div>
+</footer>
+
+</body>
+</html>
